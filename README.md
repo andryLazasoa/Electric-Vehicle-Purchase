@@ -1,39 +1,50 @@
-Electric Vehicle Purchase Interest — Kaggle Competition
-Introduction
+[README_en.md](https://github.com/user-attachments/files/32076805/README_en.md)
+# Spaceship Titanic — Kaggle Competition
 
-This notebook is my submission for the Kaggle Playground Series — Season 6, Episode 9 competition: Predicting Electric Vehicle Interest.
+## Introduction
 
-The goal is to predict, for each customer, the probability that they are interested in buying an electric vehicle (Will_Buy_EV: Yes/No), based on demographic data (age, gender, income), travel habits (daily commute, current car type), and EV-adoption factors (home charging access, subsidy availability, range anxiety level, proximity to charging stations, environmental concern, etc.). This is a binary classification problem, evaluated on AUC-ROC.
+This notebook is my submission for the Kaggle **[Spaceship Titanic](https://www.kaggle.com/competitions/spaceship-titanic)** competition.
 
-Notebook outline
-Data loading and overview
-Importing libraries (pandas, numpy, matplotlib, seaborn, scikit-learn, XGBoost)
-Loading the training dataset and a first look at it (.info())
-Exploratory Data Analysis (EDA)
-Checking missing values (none found) and duplicate rows (none found)
-Distribution of Age and Annual_Income_USD, including a check on customers with income stuck at exactly $30,000
-Breakdown of Current_Car_Type, City_Type, Range_Anxiety_Level, Number_of_Cars_Owned, Gender
-Correlation heatmap of the numerical features
-Feature preparation
-Manual encoding of Home_Charging_Possible and Subsidy_Available (Yes/No → 1/0)
-Manual ordinal encoding of Range_Anxiety_Level (Low/Medium/High → 1/2/3), to preserve the natural order of the variable
-Splitting features (X) from the target (Will_Buy_EV, encoded Yes/No → 1/0)
-Preprocessing and model training
-Train/validation split (train_test_split)
-One-hot encoding of the remaining categorical columns (Gender, City_Type, Current_Car_Type) via ColumnTransformer, with remainder='passthrough' to keep every other (already numeric/mapped) column untouched
-Model: XGBClassifier (n_estimators=600, learning_rate=0.03, max_depth=5, subsample=0.8, colsample_bytree=0.8, min_child_weight=5, reg_lambda=1.0), wrapped together with the preprocessing step in a single Pipeline
-Fitting the pipeline and checking validation performance
-Test data preprocessing and submission
-Loading the test dataset and applying the same manual encoding used on the training data
-Generating prediction probabilities with predict_proba(X_test)[:, 1]
-Exporting the submission.csv file in the format expected by Kaggle
-Conclusion
+The (fictional) context set up by the competition: in the year 2912, the *Spaceship Titanic* was carrying almost 13,000 passengers toward three newly habitable exoplanets. While crossing a spacetime anomaly hidden in a dust cloud, about half of the passengers were "transported" to another dimension. The goal of the competition is to predict, based on passengers' personal data and onboard spending (home planet, cabin, expenses, etc.), which ones were transported (`Transported`: `True`/`False`). This is a **binary classification** problem, evaluated on prediction accuracy.
 
-Final leaderboard score: AUC ≈ 0.941.
+## Notebook outline
 
-Two mistakes came up while building this notebook, both worth noting since they're easy to miss and can silently wreck a model:
+1. **Data loading and overview**
+   - Importing libraries (pandas, numpy, scikit-learn)
+   - Loading the training dataset and a first look at it (`.info()`)
 
-ColumnTransformer without remainder='passthrough': by default (remainder='drop'), any column not explicitly listed in transformers gets silently dropped before reaching the model — including numerical features that turned out to carry most of the signal. This first version scored an AUC of only ~0.53 on validation (barely above random) while still showing a "normal-looking" ~82% accuracy, which is what made the bug hard to notice at first.
-Computing AUC on predict() instead of predict_proba(): roc_auc_score needs continuous probabilities to properly measure a model's ranking ability. Computing it on already-thresholded class predictions (predict()) understates the real score substantially (~0.81 vs. the actual ~0.94 measured with probabilities).
+2. **Exploratory Data Analysis (EDA)**
+   - Checking missing values and duplicates
+   - Analysis of `HomePlanet`, `CryoSleep`, `Destination`, `VIP`
+   - Analysis of `Age`, `RoomService`, `FoodCourt`, `ShoppingMall`, `Spa`, `VRDeck`
+   - Splitting the `Cabin` column into three sub-columns: `Deck`, `Num`, `Side`, followed by analysis of these new columns
+   - Summary of findings: which columns have missing values, distributions, planned imputation strategy, and no strong correlation found between numerical variables (so no identified risk of data leakage)
 
-Model selection here was limited to a single train/validation split with manually chosen XGBoost hyperparameters — no systematic hyperparameter search (e.g. GridSearchCV/Optuna) and no k-fold cross-validation were used, so the reported validation score should be read as a single-split estimate rather than a fully robust one. Both would be natural next steps, along with trying alternative models (LightGBM, CatBoost) for comparison.
+3. **Data preprocessing and model training**
+   - Extracting extra information from `PassengerId` (group number)
+   - Splitting features / target (`Transported`) and train/validation split
+   - Separating categorical and numerical columns
+   - Imputing missing values (`SimpleImputer`: `most_frequent` strategy for categorical columns, `median`/`fillna(0)` for numerical columns depending on the column)
+   - Encoding categorical variables with `OneHotEncoder`
+   - Merging all transformed columns into final training and validation sets
+   - Comparing two models (`RandomForestClassifier` and `GradientBoostingClassifier`) via 5-fold cross-validation across several `n_estimators` values, with performance curves plotted
+   - Selecting the best model
+
+4. **Test data preprocessing and submission**
+   - Loading the test dataset and applying the same transformations used on the training data (via a `Pipeline` combining imputation, encoding, and the model)
+   - Fitting the final pipeline on the full training data
+   - Generating predictions on the test set
+   - Exporting the `submission.csv` file in the format expected by Kaggle
+
+## Conclusion
+
+The two models tested via cross-validation gave the following results (mean accuracy across 5 folds):
+
+- **RandomForestClassifier**: best accuracy around **0.796** (`n_estimators=400`)
+- **GradientBoostingClassifier**: best accuracy around **0.806** (`n_estimators=300`)
+
+The `GradientBoostingClassifier` (`n_estimators=300`) was chosen as the final model and trained on the full dataset to generate the predictions submitted to the competition.
+
+Model selection here was limited to comparing `n_estimators` for both algorithms via cross-validation; the models were **not further hyperparameter-tuned** (e.g. `learning_rate`, `max_depth`, `min_samples_split`, etc.) beyond that, mainly because I didn't yet have enough knowledge and understanding of how these parameters interact to tune them properly.
+
+This is my **very first Kaggle competition**, and more broadly my **first Machine Learning experience outside of a class exercise**. The notebook reflects that: it isn't always very polished in form (organization, naming, comments), and there is certainly a lot of room for improvement — both in feature engineering (e.g. making better use of the `Deck`/`Num`/`Side` columns or onboard spending), and in properly tuning the models or trying other algorithms. I'm publishing it as is, as a record of this starting point.
