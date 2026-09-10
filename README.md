@@ -1,4 +1,3 @@
-[README_en.md](https://github.com/user-attachments/files/32076805/README_en.md)
 # Spaceship Titanic — Kaggle Competition
 
 ## Introduction
